@@ -39,3 +39,6 @@ Every completed phrase is sent to global chat with the prefix `[Voice]` through
 `https://ccstt.novaa.dev`. Because this is a normal HTTPS address, no private-IP
 allowlist is needed in CC:Tweaked. Keep the token in the script private: it
 prevents other visitors from reading queued speech.
+
+If a phrase contains `burger` in any capitalization, the ComputerCraft script
+also powers its top redstone output for one second.

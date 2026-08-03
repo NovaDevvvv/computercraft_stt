@@ -2,6 +2,8 @@
 local BRIDGE_URL = "https://ccstt.novaa.dev/next?token=ccstt-8e4f73b12a6d"
 local CHAT_PREFIX = "Voice"
 local POLL_SECONDS = 0.25
+local REDSTONE_SIDE = "top"
+local REDSTONE_SECONDS = 1
 
 local chatBox = peripheral.find("chatBox")
 if not chatBox then
@@ -23,6 +25,12 @@ while true do
             if sent then
                 print(data.message)
                 print("DONE")
+                if string.find(string.lower(data.message), "burger", 1, true) then
+                    print("Burger detected - powering " .. REDSTONE_SIDE)
+                    redstone.setOutput(REDSTONE_SIDE, true)
+                    sleep(REDSTONE_SECONDS)
+                    redstone.setOutput(REDSTONE_SIDE, false)
+                end
             else
                 printError("Chat Box: " .. tostring(sendError))
                 sleep(1)
