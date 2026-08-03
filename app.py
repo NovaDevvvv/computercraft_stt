@@ -1,4 +1,5 @@
 import json
+import io
 import queue
 import subprocess
 import sys
@@ -9,6 +10,7 @@ from pathlib import Path
 from tkinter import ttk
 
 import speech_recognition as sr
+from faster_whisper import WhisperModel
 
 
 phrase_queue: queue.Queue[str] = queue.Queue()
@@ -47,6 +49,7 @@ class SpeechToTextApp:
         self.recognizer = sr.Recognizer()
         self.recognizer.dynamic_energy_threshold = True
         self.recognizer.pause_threshold = 0.8
+        self.whisper: WhisperModel | None = None
         self.events: queue.Queue[tuple[str, str]] = queue.Queue()
         self.stop_event = threading.Event()
         self.worker: threading.Thread | None = None
@@ -131,6 +134,8 @@ class SpeechToTextApp:
 
     def listen_loop(self, device_index: int) -> None:
         try:
+            self.events.put(("status", "Loading the local Whisper model..."))
+            self.whisper = WhisperModel("base.en", device="cpu", compute_type="int8")
             with sr.Microphone(device_index=device_index) as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.8)
                 self.events.put(("status", "Listening... Speak into the microphone."))
@@ -145,20 +150,22 @@ class SpeechToTextApp:
                         break
 
                     self.events.put(("status", "Transcribing..."))
-                    try:
-                        transcript = self.recognizer.recognize_google(audio).strip()
-                        if transcript:
-                            print(transcript, flush=True)
-                            print("DONE", flush=True)
-                            phrase_queue.put(transcript)
-                            self.events.put(("status", f'Heard: "{transcript}" — listening again...'))
-                    except sr.UnknownValueError:
-                        self.events.put(("status", "Speech was unclear — listening again..."))
-                    except sr.RequestError as error:
-                        self.events.put(("error", f"Speech service error: {error}"))
-                        break
+                    segments, _ = self.whisper.transcribe(
+                        io.BytesIO(audio.get_wav_data()),
+                        language="en",
+                        beam_size=5,
+                        vad_filter=True,
+                    )
+                    transcript = " ".join(segment.text.strip() for segment in segments).strip()
+                    if transcript:
+                        print(transcript, flush=True)
+                        print("DONE", flush=True)
+                        phrase_queue.put(transcript)
+                        self.events.put(("status", f'Heard: "{transcript}" - listening again...'))
+                    else:
+                        self.events.put(("status", "Speech was unclear - listening again..."))
         except Exception as error:
-            self.events.put(("error", f"Microphone error: {error}"))
+            self.events.put(("error", f"Speech-to-text error: {error}"))
         finally:
             self.events.put(("stopped", "Stopped."))
 

@@ -18,9 +18,11 @@ Double-click `start.bat`. The first launch creates a local Python environment
 and installs the two required packages. Pick a microphone and click **Start
 listening**.
 
-Python 3 and an internet connection are required. Audio is sent to Google's
-speech recognition service for transcription. Audio that cannot be understood
-is skipped and listening continues.
+Python 3 is required. Speech is transcribed locally with faster-whisper's
+English `base.en` model; microphone audio is not sent to an online speech
+service. The first launch needs internet access to install dependencies and
+download the model. Later transcription runs locally. Audio that cannot be
+understood is skipped and listening continues.
 
 The end-of-phrase delay can be adjusted with `pause_threshold` near the top of
 `app.py`; its default is 0.8 seconds of silence.
@@ -35,10 +37,34 @@ ComputerCraft computer.
 3. Change `BRIDGE_URL` at the top of the script to the blue URL.
 4. Run `stt_chat` and then click **Start listening** in the desktop app.
 
-Every completed phrase is sent to global chat with the prefix `[Voice]` through
-`https://ccstt.novaa.dev`. Because this is a normal HTTPS address, no private-IP
-allowlist is needed in CC:Tweaked. Keep the token in the script private: it
-prevents other visitors from reading queued speech.
+Recognized speech is not broadcast to Minecraft chat. The Chat Box only sends
+`Voice commands online` when the script starts and `Voice commands offline`
+when it stops. Jarvis commands execute silently. Because the bridge uses the
+normal HTTPS address `https://ccstt.novaa.dev`, no private-IP allowlist is
+needed in CC:Tweaked. Keep the URL token private.
 
-If a phrase contains `burger` in any capitalization, the ComputerCraft script
-also powers its top redstone output for one second.
+## Jarvis commands
+
+Voice commands are configured in `commands.json`. Every command must begin with
+`Jarvis`; capitalization and punctuation are ignored. For example, all of these
+trigger the default `teleport` command:
+
+```text
+Jarvis teleport
+Jarvis, teleport
+Jarvis. teleport
+```
+
+The default configuration pulses the computer's back redstone output for one
+second. Add more entries using the same structure:
+
+```json
+{
+  "command": "teleport",
+  "side": "back",
+  "duration": 1
+}
+```
+
+The ComputerCraft script downloads the latest `commands.json` from GitHub each
+time it starts, so restart `stt_chat` after pushing command changes.
