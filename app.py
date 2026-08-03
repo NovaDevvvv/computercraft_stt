@@ -79,11 +79,15 @@ def command_event_for(transcript: str) -> dict[str, object] | None:
         config = json.load(config_file)
 
     spoken = normalize_words(transcript)
-    wake_word = normalize_words(str(config.get("wake_word", "jarvis")))
-    prefix = wake_word + " "
-    if not spoken.startswith(prefix):
+    wake_words = config.get("wake_words", [config.get("wake_word", "jarvis")])
+    request = None
+    for wake_word_value in wake_words:
+        prefix = normalize_words(str(wake_word_value)) + " "
+        if spoken.startswith(prefix):
+            request = spoken[len(prefix):]
+            break
+    if request is None:
         return None
-    request = spoken[len(prefix):]
 
     for command in config.get("commands", []):
         action = command.get("action", {})

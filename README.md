@@ -45,14 +45,16 @@ needed in CC:Tweaked. Keep the URL token private.
 
 ## Jarvis commands
 
-Voice commands are configured in `commands.json`. Every command must begin with
-`Jarvis`; capitalization and punctuation are ignored. For example, all of these
-trigger a command regardless of punctuation after the wake word:
+Voice commands are configured in `commands.json`. Every command begins with a
+configured wake word. `Jarvis`, `Java's`, and `Javas` are accepted by default;
+capitalization and punctuation are ignored. For example:
 
 ```text
 Jarvis take me home
 Jarvis, take me home
 Jarvis. take me home
+Java's, take me home
+Javas take me home
 ```
 
 The default configuration pulses the computer's back redstone output for one

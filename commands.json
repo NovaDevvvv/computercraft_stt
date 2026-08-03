@@ -1,5 +1,5 @@
 {
-  "wake_word": "jarvis",
+  "wake_words": ["jarvis", "java's", "javas"],
   "commands": [
     {
       "name": "take me home",
