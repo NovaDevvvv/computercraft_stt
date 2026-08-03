@@ -142,3 +142,16 @@ The assistant identity is configured in `commands.json`. By default it is
 system for managing and automating the base. Its prompt tells it to stay concise
 for speech and never claim that an action succeeded without a real system
 result.
+
+### JARVIS memory
+
+JARVIS remembers the latest 12 query exchanges across desktop app restarts. Its
+conversation history is stored locally in `jarvis_memory.json`, which is ignored
+by Git so private conversations are never pushed to the repository. For example:
+
+```text
+Jarvis query remember that the storage room is downstairs
+Jarvis query where is the storage room
+```
+
+Delete `jarvis_memory.json` while the desktop app is closed to clear all memory.

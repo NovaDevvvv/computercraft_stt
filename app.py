@@ -18,8 +18,10 @@ from groq import Groq
 
 
 command_queue: queue.Queue[dict[str, object]] = queue.Queue()
+memory_lock = threading.Lock()
 BRIDGE_TOKEN = "ccstt-8e4f73b12a6d"
 PUBLIC_BRIDGE_URL = f"https://ccstt.novaa.dev/next?token={BRIDGE_TOKEN}"
+MEMORY_PATH = Path(__file__).with_name("jarvis_memory.json")
 load_dotenv(Path(__file__).with_name(".env"))
 
 
@@ -57,10 +59,35 @@ def assistant_prompt(identity: dict[str, object]) -> str:
         f"You are {name}, the voice intelligence of the {system_name}. "
         f"You are the {role}. Address the user as {address} when natural. "
         "You help with base operations, automation, status questions, planning, and general knowledge. "
+        "Use relevant details from your conversation memory when answering. "
         "Never claim an action succeeded unless the system actually reports it. "
         "Answer for text-to-speech in at most two short sentences. "
         "Use plain text only, with no markdown, lists, or citations."
     )
+
+
+def load_memory() -> list[dict[str, str]]:
+    if not MEMORY_PATH.exists():
+        return []
+    try:
+        with MEMORY_PATH.open("r", encoding="utf-8") as memory_file:
+            data = json.load(memory_file)
+        messages = data.get("messages", [])
+        return [
+            {"role": item["role"], "content": item["content"]}
+            for item in messages
+            if item.get("role") in {"user", "assistant"} and isinstance(item.get("content"), str)
+        ][-24:]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return []
+
+
+def save_memory(messages: list[dict[str, str]]) -> None:
+    temporary_path = MEMORY_PATH.with_suffix(".json.tmp")
+    limited_messages = messages[-24:]
+    with temporary_path.open("w", encoding="utf-8") as memory_file:
+        json.dump({"version": 1, "messages": limited_messages}, memory_file, indent=2)
+    temporary_path.replace(MEMORY_PATH)
 
 
 def ask_groq(
@@ -72,21 +99,31 @@ def ask_groq(
     if not api_key:
         raise RuntimeError("GROQ_API_KEY is missing from .env")
 
-    client = Groq(api_key=api_key)
-    completion = client.chat.completions.create(
-        model=str(action.get("model", "llama-3.1-8b-instant")),
-        max_completion_tokens=int(action.get("max_completion_tokens", 80)),
-        temperature=0.3,
-        messages=[
+    with memory_lock:
+        remembered_messages = load_memory()
+        messages = [
             {
                 "role": "system",
                 "content": assistant_prompt(identity or {}),
             },
+            *remembered_messages,
             {"role": "user", "content": question},
-        ],
-    )
-    answer = (completion.choices[0].message.content or "").strip()
-    return re.sub(r"\s+", " ", answer)[:400]
+        ]
+        client = Groq(api_key=api_key)
+        completion = client.chat.completions.create(
+            model=str(action.get("model", "llama-3.1-8b-instant")),
+            max_completion_tokens=int(action.get("max_completion_tokens", 80)),
+            temperature=0.3,
+            messages=messages,
+        )
+        answer = (completion.choices[0].message.content or "").strip()
+        answer = re.sub(r"\s+", " ", answer)[:400]
+        save_memory([
+            *remembered_messages,
+            {"role": "user", "content": question},
+            {"role": "assistant", "content": answer},
+        ])
+        return answer
 
 
 def command_event_for(transcript: str) -> dict[str, object] | None:
