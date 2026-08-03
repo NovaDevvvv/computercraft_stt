@@ -48,7 +48,26 @@ def normalize_words(value: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9]+", " ", value.lower()).split())
 
 
-def ask_groq(question: str, action: dict[str, object]) -> str:
+def assistant_prompt(identity: dict[str, object]) -> str:
+    name = str(identity.get("name", "JARVIS"))
+    system_name = str(identity.get("system_name", "Aegis Nexus"))
+    role = str(identity.get("role", "central command intelligence for the base"))
+    address = str(identity.get("address_user_as", "Commander"))
+    return (
+        f"You are {name}, the voice intelligence of the {system_name}. "
+        f"You are the {role}. Address the user as {address} when natural. "
+        "You help with base operations, automation, status questions, planning, and general knowledge. "
+        "Never claim an action succeeded unless the system actually reports it. "
+        "Answer for text-to-speech in at most two short sentences. "
+        "Use plain text only, with no markdown, lists, or citations."
+    )
+
+
+def ask_groq(
+    question: str,
+    action: dict[str, object],
+    identity: dict[str, object] | None = None,
+) -> str:
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise RuntimeError("GROQ_API_KEY is missing from .env")
@@ -61,10 +80,7 @@ def ask_groq(question: str, action: dict[str, object]) -> str:
         messages=[
             {
                 "role": "system",
-                "content": (
-                    "Answer for text-to-speech in at most two short sentences. "
-                    "Use plain text only, with no markdown, lists, or citations."
-                ),
+                "content": assistant_prompt(identity or {}),
             },
             {"role": "user", "content": question},
         ],
@@ -98,7 +114,10 @@ def command_event_for(transcript: str) -> dict[str, object] | None:
                 return {
                     "type": "command",
                     "command": command.get("name", command_prefix),
-                    "action": {"type": "speak", "text": ask_groq(argument, action)},
+                    "action": {
+                        "type": "speak",
+                        "text": ask_groq(argument, action, config.get("assistant", {})),
+                    },
                 }
 
         phrases = command.get("phrases", [command.get("name", "")])

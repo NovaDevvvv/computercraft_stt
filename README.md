@@ -136,3 +136,9 @@ speaker play https://music.madefor.cc/tts?text=Mount%20Everest...
 ```
 
 A CC:Tweaked speaker must be attached to the computer.
+
+The assistant identity is configured in `commands.json`. By default it is
+**JARVIS**, the voice intelligence of the **Aegis Nexus**, a central command
+system for managing and automating the base. Its prompt tells it to stay concise
+for speech and never claim that an action succeeded without a real system
+result.

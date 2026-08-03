@@ -1,5 +1,11 @@
 {
   "wake_words": ["jarvis", "java's", "javas"],
+  "assistant": {
+    "name": "JARVIS",
+    "system_name": "Aegis Nexus",
+    "role": "central command intelligence for managing and automating the base",
+    "address_user_as": "Commander"
+  },
   "commands": [
     {
       "name": "take me home",
