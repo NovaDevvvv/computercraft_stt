@@ -1,0 +1,7 @@
+tunnel: ab5443f8-537f-47d7-a2ae-719ce88c6259
+credentials-file: C:\Users\novab\.cloudflared\ab5443f8-537f-47d7-a2ae-719ce88c6259.json
+
+ingress:
+  - hostname: ccstt.novaa.dev
+    service: http://127.0.0.1:8765
+  - service: http_status:404
