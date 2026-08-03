@@ -19,10 +19,19 @@ and installs the two required packages. Pick a microphone and click **Start
 listening**.
 
 Python 3 is required. Speech is transcribed locally with faster-whisper's
-English `base.en` model; microphone audio is not sent to an online speech
+English `medium.en` model; microphone audio is not sent to an online speech
 service. The first launch needs internet access to install dependencies and
 download the model. Later transcription runs locally. Audio that cannot be
 understood is skipped and listening continues.
+
+The Whisper model is configurable in `.env`. The defaults favor accuracy and
+reliable CPU compatibility:
+
+```dotenv
+WHISPER_MODEL=medium.en
+WHISPER_DEVICE=cpu
+WHISPER_COMPUTE_TYPE=int8
+```
 
 The end-of-phrase delay can be adjusted with `pause_threshold` near the top of
 `app.py`; its default is 0.8 seconds of silence.

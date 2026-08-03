@@ -206,8 +206,15 @@ class SpeechToTextApp:
 
     def listen_loop(self, device_index: int) -> None:
         try:
-            self.events.put(("status", "Loading the local Whisper model..."))
-            self.whisper = WhisperModel("base.en", device="cpu", compute_type="int8")
+            model_name = os.getenv("WHISPER_MODEL", "medium.en")
+            model_device = os.getenv("WHISPER_DEVICE", "cpu")
+            compute_type = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
+            self.events.put(("status", f"Loading Whisper {model_name}..."))
+            self.whisper = WhisperModel(
+                model_name,
+                device=model_device,
+                compute_type=compute_type,
+            )
             with sr.Microphone(device_index=device_index) as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.8)
                 self.events.put(("status", "Listening... Speak into the microphone."))
