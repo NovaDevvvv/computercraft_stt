@@ -2,6 +2,7 @@ import json
 import io
 import queue
 import re
+import os
 import subprocess
 import sys
 import threading
@@ -11,12 +12,15 @@ from pathlib import Path
 from tkinter import ttk
 
 import speech_recognition as sr
+from dotenv import load_dotenv
 from faster_whisper import WhisperModel
+from groq import Groq
 
 
 command_queue: queue.Queue[dict[str, object]] = queue.Queue()
 BRIDGE_TOKEN = "ccstt-8e4f73b12a6d"
 PUBLIC_BRIDGE_URL = f"https://ccstt.novaa.dev/next?token={BRIDGE_TOKEN}"
+load_dotenv(Path(__file__).with_name(".env"))
 
 
 class BridgeHandler(BaseHTTPRequestHandler):
@@ -44,6 +48,31 @@ def normalize_words(value: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9]+", " ", value.lower()).split())
 
 
+def ask_groq(question: str, action: dict[str, object]) -> str:
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is missing from .env")
+
+    client = Groq(api_key=api_key)
+    completion = client.chat.completions.create(
+        model=str(action.get("model", "llama-3.1-8b-instant")),
+        max_completion_tokens=int(action.get("max_completion_tokens", 80)),
+        temperature=0.3,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Answer for text-to-speech in at most two short sentences. "
+                    "Use plain text only, with no markdown, lists, or citations."
+                ),
+            },
+            {"role": "user", "content": question},
+        ],
+    )
+    answer = (completion.choices[0].message.content or "").strip()
+    return re.sub(r"\s+", " ", answer)[:400]
+
+
 def command_event_for(transcript: str) -> dict[str, object] | None:
     config_path = Path(__file__).with_name("commands.json")
     with config_path.open("r", encoding="utf-8") as config_file:
@@ -57,12 +86,23 @@ def command_event_for(transcript: str) -> dict[str, object] | None:
     request = spoken[len(prefix):]
 
     for command in config.get("commands", []):
+        action = command.get("action", {})
+        command_prefix = normalize_words(str(command.get("prefix", "")))
+        if command_prefix and request.startswith(command_prefix + " "):
+            argument = request[len(command_prefix):].strip()
+            if action.get("type") == "groq_query" and argument:
+                return {
+                    "type": "command",
+                    "command": command.get("name", command_prefix),
+                    "action": {"type": "speak", "text": ask_groq(argument, action)},
+                }
+
         phrases = command.get("phrases", [command.get("name", "")])
         if request in (normalize_words(str(phrase)) for phrase in phrases):
             return {
                 "type": "command",
                 "command": command.get("name", request),
-                "action": command.get("action", {}),
+                "action": action,
             }
     return None
 
@@ -188,7 +228,12 @@ class SpeechToTextApp:
                     if transcript:
                         print(transcript, flush=True)
                         print("DONE", flush=True)
-                        command_event = command_event_for(transcript)
+                        try:
+                            command_event = command_event_for(transcript)
+                        except Exception as error:
+                            print(f"Command error: {error}", flush=True)
+                            self.events.put(("status", f"Command error: {error} - listening again..."))
+                            continue
                         if command_event:
                             command_queue.put(command_event)
                             self.events.put(("status", f'Command: {command_event["command"]} - listening again...'))

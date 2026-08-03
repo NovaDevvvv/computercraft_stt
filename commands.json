@@ -2,12 +2,21 @@
   "wake_word": "jarvis",
   "commands": [
     {
-      "name": "teleport",
-      "phrases": ["teleport"],
+      "name": "take me home",
+      "phrases": ["take me home"],
       "action": {
         "type": "redstone",
         "side": "back",
         "duration": 1
+      }
+    },
+    {
+      "name": "query",
+      "prefix": "query",
+      "action": {
+        "type": "groq_query",
+        "model": "llama-3.1-8b-instant",
+        "max_completion_tokens": 80
       }
     }
   ]

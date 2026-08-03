@@ -1,3 +1,5 @@
 SpeechRecognition==3.14.3
 PyAudio==0.2.14
 faster-whisper>=1.1.0,<2
+groq>=0.31.0,<1
+python-dotenv>=1.0.0,<2

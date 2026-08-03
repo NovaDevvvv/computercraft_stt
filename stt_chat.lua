@@ -2,6 +2,7 @@
 local BRIDGE_URL = "https://ccstt.novaa.dev/next?token=ccstt-8e4f73b12a6d"
 local CHAT_PREFIX = "Voice"
 local POLL_SECONDS = 0.25
+local TTS_URL = "https://music.madefor.cc/tts?text="
 local VALID_SIDES = {
     top = true, bottom = true, left = true,
     right = true, front = true, back = true
@@ -11,6 +12,15 @@ local activeSides = {}
 
 local function runCommand(event)
     if event.type ~= "command" or type(event.action) ~= "table" then
+        return
+    end
+
+    if event.action.type == "speak" and type(event.action.text) == "string" then
+        print("Speaking query response")
+        local url = TTS_URL .. textutils.urlEncode(event.action.text)
+        if not shell.run("speaker", "play", url) then
+            printError("Could not play the query response")
+        end
         return
     end
 

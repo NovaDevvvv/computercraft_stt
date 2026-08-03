@@ -47,12 +47,12 @@ needed in CC:Tweaked. Keep the URL token private.
 
 Voice commands are configured in `commands.json`. Every command must begin with
 `Jarvis`; capitalization and punctuation are ignored. For example, all of these
-trigger the default `teleport` command:
+trigger a command regardless of punctuation after the wake word:
 
 ```text
-Jarvis teleport
-Jarvis, teleport
-Jarvis. teleport
+Jarvis take me home
+Jarvis, take me home
+Jarvis. take me home
 ```
 
 The default configuration pulses the computer's back redstone output for one
@@ -60,8 +60,8 @@ second. Add more entries using this structure:
 
 ```json
 {
-  "name": "teleport",
-  "phrases": ["teleport", "teleport me"],
+  "name": "take me home",
+  "phrases": ["take me home"],
   "action": {
     "type": "redstone",
     "side": "back",
@@ -77,7 +77,7 @@ raw transcript:
 ```json
 {
   "type": "command",
-  "command": "teleport",
+  "command": "take me home",
   "action": {
     "type": "redstone",
     "side": "back",
@@ -88,3 +88,40 @@ raw transcript:
 
 ComputerCraft interprets the action and ignores idle responses. Non-command
 speech never enters the ComputerCraft queue.
+
+### Groq queries
+
+Copy `.env.example` to `.env` and replace the placeholder with your Groq key:
+
+```dotenv
+GROQ_API_KEY=gsk_your_key_here
+```
+
+The `.env` file is ignored by Git and must never be committed. Restart the
+desktop app after changing it. You can then ask:
+
+```text
+Jarvis query what is the tallest mountain
+```
+
+The desktop app sends the question to Groq using `llama-3.1-8b-instant`, asks
+for at most two short plain-text sentences, and queues this action:
+
+```json
+{
+  "type": "command",
+  "command": "query",
+  "action": {
+    "type": "speak",
+    "text": "Mount Everest is the tallest mountain above sea level."
+  }
+}
+```
+
+ComputerCraft URL-encodes the response and runs the equivalent of:
+
+```text
+speaker play https://music.madefor.cc/tts?text=Mount%20Everest...
+```
+
+A CC:Tweaked speaker must be attached to the computer.
