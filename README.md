@@ -56,15 +56,35 @@ Jarvis. teleport
 ```
 
 The default configuration pulses the computer's back redstone output for one
-second. Add more entries using the same structure:
+second. Add more entries using this structure:
 
 ```json
 {
-  "command": "teleport",
-  "side": "back",
-  "duration": 1
+  "name": "teleport",
+  "phrases": ["teleport", "teleport me"],
+  "action": {
+    "type": "redstone",
+    "side": "back",
+    "duration": 1
+  }
 }
 ```
 
-The ComputerCraft script downloads the latest `commands.json` from GitHub each
-time it starts, so restart `stt_chat` after pushing command changes.
+The desktop app reloads `commands.json` for every completed phrase. When a
+phrase matches, it sends a structured event through Cloudflare instead of the
+raw transcript:
+
+```json
+{
+  "type": "command",
+  "command": "teleport",
+  "action": {
+    "type": "redstone",
+    "side": "back",
+    "duration": 1
+  }
+}
+```
+
+ComputerCraft interprets the action and ignores idle responses. Non-command
+speech never enters the ComputerCraft queue.

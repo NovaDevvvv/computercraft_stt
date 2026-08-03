@@ -1,6 +1,7 @@
 import json
 import io
 import queue
+import re
 import subprocess
 import sys
 import threading
@@ -13,7 +14,7 @@ import speech_recognition as sr
 from faster_whisper import WhisperModel
 
 
-phrase_queue: queue.Queue[str] = queue.Queue()
+command_queue: queue.Queue[dict[str, object]] = queue.Queue()
 BRIDGE_TOKEN = "ccstt-8e4f73b12a6d"
 PUBLIC_BRIDGE_URL = f"https://ccstt.novaa.dev/next?token={BRIDGE_TOKEN}"
 
@@ -24,10 +25,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self.send_error(404)
             return
         try:
-            phrase = phrase_queue.get_nowait()
+            event = command_queue.get_nowait()
         except queue.Empty:
-            phrase = None
-        body = json.dumps({"message": phrase}).encode("utf-8")
+            event = {"type": "idle"}
+        body = json.dumps(event).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -37,6 +38,33 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args: object) -> None:
         return
+
+
+def normalize_words(value: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", value.lower()).split())
+
+
+def command_event_for(transcript: str) -> dict[str, object] | None:
+    config_path = Path(__file__).with_name("commands.json")
+    with config_path.open("r", encoding="utf-8") as config_file:
+        config = json.load(config_file)
+
+    spoken = normalize_words(transcript)
+    wake_word = normalize_words(str(config.get("wake_word", "jarvis")))
+    prefix = wake_word + " "
+    if not spoken.startswith(prefix):
+        return None
+    request = spoken[len(prefix):]
+
+    for command in config.get("commands", []):
+        phrases = command.get("phrases", [command.get("name", "")])
+        if request in (normalize_words(str(phrase)) for phrase in phrases):
+            return {
+                "type": "command",
+                "command": command.get("name", request),
+                "action": command.get("action", {}),
+            }
+    return None
 
 
 class SpeechToTextApp:
@@ -160,8 +188,12 @@ class SpeechToTextApp:
                     if transcript:
                         print(transcript, flush=True)
                         print("DONE", flush=True)
-                        phrase_queue.put(transcript)
-                        self.events.put(("status", f'Heard: "{transcript}" - listening again...'))
+                        command_event = command_event_for(transcript)
+                        if command_event:
+                            command_queue.put(command_event)
+                            self.events.put(("status", f'Command: {command_event["command"]} - listening again...'))
+                        else:
+                            self.events.put(("status", "No Jarvis command - listening again..."))
                     else:
                         self.events.put(("status", "Speech was unclear - listening again..."))
         except Exception as error:

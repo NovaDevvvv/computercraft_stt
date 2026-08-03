@@ -1,9 +1,14 @@
 {
+  "wake_word": "jarvis",
   "commands": [
     {
-      "command": "teleport",
-      "side": "back",
-      "duration": 1
+      "name": "teleport",
+      "phrases": ["teleport"],
+      "action": {
+        "type": "redstone",
+        "side": "back",
+        "duration": 1
+      }
     }
   ]
 }
