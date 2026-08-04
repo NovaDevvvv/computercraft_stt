@@ -150,6 +150,15 @@ The time is read from Minecraft's in-game clock and formatted in 12-hour
 AM/PM form. The announcement triggers once when the signal turns on; the signal
 must turn off before it can trigger again.
 
+## Classified monitor dashboard
+
+If the ComputerCraft monitor named `monitor_0` is connected, the script
+automatically displays an animated **Aegis Nexus** operations dashboard. The
+3x3 display includes a radar sweep, tracked contacts, live in-game time, system
+states, clearance level, and an encrypted-uplink animation. A top-side welcome
+signal temporarily changes the display to an orange docking alert. The monitor
+is optional and the voice bridge continues normally without one.
+
 The assistant identity is configured in `commands.json`. By default it is
 **JARVIS**, the voice intelligence of the **Aegis Nexus**, a central command
 system for managing and automating the base. Its prompt tells it to stay concise
