@@ -3,6 +3,7 @@ local BRIDGE_URL = "https://ccstt.novaa.dev/next?token=ccstt-8e4f73b12a6d"
 local CHAT_PREFIX = "Voice"
 local POLL_SECONDS = 0.25
 local TTS_URL = "https://music.madefor.cc/tts?text="
+local WELCOME_SIDE = "top"
 local VALID_SIDES = {
     top = true, bottom = true, left = true,
     right = true, front = true, back = true
@@ -10,17 +11,21 @@ local VALID_SIDES = {
 
 local activeSides = {}
 
+local function speak(text, description)
+    print("Speaking " .. description)
+    local url = TTS_URL .. textutils.urlEncode(text)
+    if not shell.run("speaker", "play", url) then
+        printError("Could not play " .. description)
+    end
+end
+
 local function runCommand(event)
     if event.type ~= "command" or type(event.action) ~= "table" then
         return
     end
 
     if event.action.type == "speak" and type(event.action.text) == "string" then
-        print("Speaking query response")
-        local url = TTS_URL .. textutils.urlEncode(event.action.text)
-        if not shell.run("speaker", "play", url) then
-            printError("Could not play the query response")
-        end
+        speak(event.action.text, "query response")
         return
     end
 
@@ -37,6 +42,24 @@ local function runCommand(event)
     sleep(duration)
     redstone.setOutput(side, false)
     activeSides[side] = nil
+end
+
+local function announceWelcome()
+    local time = textutils.formatTime(os.time("ingame"), false)
+    speak("Welcome aboard. The time is " .. time .. ".", "welcome announcement")
+end
+
+local function listenForWelcomeSignal()
+    local wasPowered = redstone.getInput(WELCOME_SIDE)
+
+    while true do
+        os.pullEvent("redstone")
+        local isPowered = redstone.getInput(WELCOME_SIDE)
+        if isPowered and not wasPowered then
+            announceWelcome()
+        end
+        wasPowered = isPowered
+    end
 end
 
 local chatBox = peripheral.find("chatBox")
@@ -77,7 +100,9 @@ local function listen()
     end
 end
 
-local ok, problem = pcall(listen)
+local ok, problem = pcall(function()
+    parallel.waitForAll(listen, listenForWelcomeSignal)
+end)
 
 -- Do not leave a command output powered if the program is terminated mid-pulse.
 for side in pairs(activeSides) do

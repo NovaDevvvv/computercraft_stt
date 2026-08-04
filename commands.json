@@ -8,12 +8,12 @@
   },
   "commands": [
     {
-      "name": "take me home",
-      "phrases": ["take me home"],
+      "name": "door open",
+      "phrases": ["open sesame"],
       "action": {
         "type": "redstone",
-        "side": "back",
-        "duration": 1
+        "side": "bottom",
+        "duration": 3
       }
     },
     {

@@ -137,6 +137,19 @@ speaker play https://music.madefor.cc/tts?text=Mount%20Everest...
 
 A CC:Tweaked speaker must be attached to the computer.
 
+## Welcome announcement
+
+When the computer receives a new redstone signal on its **top** side,
+`stt_chat.lua` plays a speaker announcement such as:
+
+```text
+Welcome aboard. The time is 7:30 PM.
+```
+
+The time is read from Minecraft's in-game clock and formatted in 12-hour
+AM/PM form. The announcement triggers once when the signal turns on; the signal
+must turn off before it can trigger again.
+
 The assistant identity is configured in `commands.json`. By default it is
 **JARVIS**, the voice intelligence of the **Aegis Nexus**, a central command
 system for managing and automating the base. Its prompt tells it to stay concise
